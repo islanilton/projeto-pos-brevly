@@ -1,0 +1,38 @@
+services:
+  pg_test:
+    image: bitnami/postgresql:latest
+    container_name: brevly-postgres-test
+    restart: unless-stopped
+    ports:
+      - 5433:5432
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_DB=test
+    volumes:
+      - db_test:/var/lib/postgresql/data
+  app_test:
+    image: node:20-alpine
+    container_name: brevly-server-test
+    restart: unless-stopped
+    ports:
+      - 3334:3333
+    depends_on:
+      - pg_test
+    environment:
+      - DATABASE_URL=postgresql://test:test@pg_test:5432/test
+      - CLOUDFLARE_ACCESS_KEY_ID=${CLOUDFLARE_ACCESS_KEY_ID}
+      - CLOUDFLARE_SECRET_ACCESS_KEY=${CLOUDFLARE_SECRET_ACCESS_KEY}
+      - CLOUDFLARE_BUCKET=${CLOUDFLARE_BUCKET}
+      - CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID}
+      - CLOUDFLARE_PUBLIC_URL=${CLOUDFLARE_PUBLIC_URL}
+      - NODE_ENV=test
+      - PORT=3333
+    volumes:
+      - .:/app
+      - /app/node_modules
+    working_dir: /app
+    command: sh -c "npm install -g pnpm && pnpm install && pnpm run db:migrate && pnpm run test"
+volumes:
+  db_test:
+    name: postgres_db_test 
