@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createLink } from './create-link'
 import { db } from '@/infra/db'
 import { schema } from '@/infra/db/schemas'
-import { eq } from 'drizzle-orm'
 import { isLeft, isRight } from '@/infra/shared/either'
 
 describe('Create Link Service', () => {
