@@ -33,8 +33,6 @@ export async function createLink(
       where: eq(schema.links.shortUrl, shortUrl),
     })
 
-    console.log(link)
-
     if (link) {
       return makeLeft(new ShortUrlAlreadyExists())
     }

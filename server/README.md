@@ -7,10 +7,10 @@ A URL shortener service built with Node.js, Fastify, TypeScript, and PostgreSQL.
 - [x] Create shortened URLs
   - [x] Validate URL format
   - [x] Prevent duplicate shortened URLs
-- [] Delete URLs
-- [] Redirect to original URL
-- [] List all URLs
-- [] Track URL access count
+- [x] Delete URLs
+- [x] Redirect to original URL
+- [x] List all URLs
+- [x] Track URL access count
 - [] Export URLs to CSV
   - [] Access CSV through CDN (Amazon S3, Cloudflare R2, etc)
   - [] Generate unique random filename
