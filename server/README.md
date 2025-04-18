@@ -11,11 +11,11 @@ A URL shortener service built with Node.js, Fastify, TypeScript, and PostgreSQL.
 - [x] Redirect to original URL
 - [x] List all URLs
 - [x] Track URL access count
-- [] Export URLs to CSV
-  - [] Access CSV through CDN (Amazon S3, Cloudflare R2, etc)
-  - [] Generate unique random filename
-  - [] Performant listing
-  - [] CSV fields: Original URL, Shortened URL, Access Count, Creation Date
+- [x] Export URLs to CSV
+  - [x] Access CSV through CDN (Amazon S3, Cloudflare R2, etc)
+  - [x] Generate unique random filename
+  - [x] Performant listing
+  - [x] CSV fields: Original URL, Shortened URL, Access Count, Creation Date
 
 ## Tech Stack
 - Node.js

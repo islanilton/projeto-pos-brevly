@@ -10,7 +10,7 @@ interface GetLinkParams {
 
 export const getLinkRoute: FastifyPluginAsyncZod = async server => {
   server.get<{ Params: GetLinkParams }>(
-    '/links/:shortUrl',
+    '/links/:shortUrl/redirect',
     {
       schema: {
         summary: 'Get Link by Short URL',
