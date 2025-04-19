@@ -1,5 +1,10 @@
 import { api } from '../lib/axios'
-import type { CreateLinkData, CreateLinkResponse, Link } from '../types/link'
+import type { CreateLinkData, Link } from '../types/link'
+
+interface RedirectResponse {
+  originalUrl: string
+  accessCount: number
+}
 
 export async function createLink(data: CreateLinkData): Promise<Link> {
   const response = await api.post<Link>('/links', data)
@@ -11,12 +16,17 @@ export async function getLinks(): Promise<Link[]> {
   return response.data.links
 }
 
-export async function deleteLink(id: string): Promise<void> {
-  await api.delete(`/links/${id}`)
+export async function deleteLink(shortUrl: string): Promise<void> {
+  await api.delete(`/links/${shortUrl}`)
 }
 
 export async function getLinkByShortUrl(shortUrl: string): Promise<Link> {
   const response = await api.get<Link>(`/links/${shortUrl}`)
+  return response.data
+}
+
+export async function redirectToUrl(shortUrl: string): Promise<RedirectResponse> {
+  const response = await api.get<RedirectResponse>(`/links/${shortUrl}/redirect`)
   return response.data
 }
 

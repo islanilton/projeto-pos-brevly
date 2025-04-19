@@ -1,9 +1,10 @@
-import { useEffect } from 'react'
-import type { Link } from '../../types/link'
-import { deleteLink, exportLinks } from '../../services/link'
-import { useLinksStore } from '../../store/links'
-import { Button } from '../Button'
-
+import { useState } from 'react'
+import { deleteLink, exportLinks } from '../services/link'
+import { useLinksStore } from '../store/links'
+import ConfirmDeleteModal from './confirm-delete-modal'
+import { Button } from './ui/button'
+import trashIcon from '../assets/images/trash.svg'
+import copyIcon from '../assets/images/copy.svg'
 interface LinkListProps {
   onDelete: (id: string) => void
   isCreating?: boolean
@@ -11,17 +12,18 @@ interface LinkListProps {
 
 export function LinkList({ onDelete, isCreating = false }: LinkListProps) {
   const { links, isLoading, isExporting, setIsExporting } = useLinksStore()
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [linkToDelete, setLinkToDelete] = useState<string | null>(null);
   const showLoading = isLoading || isCreating
 
   async function handleCopy(shortUrl: string) {
     await navigator.clipboard.writeText(`${window.location.origin}/${shortUrl}`)
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(shortUrl: string) {
     try {
-      await deleteLink(id)
-      onDelete(id)
+      await deleteLink(shortUrl)
+      onDelete(shortUrl)
     } catch (error) {
       console.error(error)
     }
@@ -128,30 +130,24 @@ export function LinkList({ onDelete, isCreating = false }: LinkListProps) {
                   <button
                     type="button"
                     onClick={() => handleCopy(link.shortUrl)}
-                    className="p-2 text-zinc-700 bg-gray-300 hover:text-[#2B6CB0] rounded-md transition-colors"
+                    className="w-10 h-10 flex items-center justify-center text-zinc-700 bg-gray-200 hover:border hover:border-zinc-700 rounded-md transition-colors"
                     title="Copiar link"
                     aria-label="Copiar link"
                   >
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path d="M16.6667 7.5H9.16667C8.24619 7.5 7.5 8.24619 7.5 9.16667V16.6667C7.5 17.5871 8.24619 18.3333 9.16667 18.3333H16.6667C17.5871 18.3333 18.3333 17.5871 18.3333 16.6667V9.16667C18.3333 8.24619 17.5871 7.5 16.6667 7.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M4.16675 12.5H3.33341C2.89139 12.5 2.46746 12.3244 2.15491 12.0118C1.84235 11.6993 1.66675 11.2754 1.66675 10.8333V3.33334C1.66675 2.89131 1.84235 2.46739 2.15491 2.15483C2.46746 1.84227 2.89139 1.66667 3.33341 1.66667H10.8334C11.2754 1.66667 11.6994 1.84227 12.0119 2.15483C12.3245 2.46739 12.5001 2.89131 12.5001 3.33334V4.16667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    <img src={copyIcon} alt="Copiar link" className="w-4 h-4" />
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => handleDelete(link.id)}
-                    className="p-2 text-zinc-700 bg-gray-300 hover:text-red-600 rounded-md transition-colors"
+                    onClick={() => {
+                      setLinkToDelete(link.shortUrl);
+                      setIsModalOpen(true);
+                    }}
+                    className="w-10 h-10 flex items-center justify-center text-zinc-700 bg-gray-200 hover:border hover:border-zinc-700 rounded-md transition-colors"
                     title="Excluir link"
                     aria-label="Excluir link"
                   >
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path d="M2.5 5H17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M15.8334 5V16.6667C15.8334 17.5 15 18.3333 14.1667 18.3333H5.83341C5.00008 18.3333 4.16675 17.5 4.16675 16.6667V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M6.66675 4.99999V3.33332C6.66675 2.49999 7.50008 1.66666 8.33341 1.66666H11.6667C12.5001 1.66666 13.3334 2.49999 13.3334 3.33332V4.99999" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M8.33325 9.16666V14.1667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M11.6667 9.16666V14.1667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    <img src={trashIcon} alt="Excluir link" className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -159,6 +155,22 @@ export function LinkList({ onDelete, isCreating = false }: LinkListProps) {
           </div>
         )}
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setLinkToDelete(null);
+        }}
+        onConfirm={() => {
+          if (linkToDelete) {
+            handleDelete(linkToDelete);
+            setIsModalOpen(false);
+            setLinkToDelete(null);
+          }
+        }}
+        message={`Você quer realmente apagar o link ${linkToDelete}?`}
+      />
     </div>
   )
 } 
