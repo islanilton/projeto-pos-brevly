@@ -24,7 +24,6 @@ export function App() {
             borderRadius: '8px',
           },
           error: {
-            icon: '⚠️',
             style: {
               background: '#EF4444',
               color: '#fff',

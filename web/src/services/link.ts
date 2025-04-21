@@ -6,14 +6,24 @@ interface RedirectResponse {
   accessCount: number
 }
 
+interface PaginatedLinksResponse {
+  links: Link[]
+  total: number
+}
+
 export async function createLink(data: CreateLinkData): Promise<Link> {
   const response = await api.post<Link>('/links', data)
   return response.data
 }
 
-export async function getLinks(): Promise<Link[]> {
-  const response = await api.get<{ links: Link[] }>('/links')
-  return response.data.links
+export async function getLinks(page = 1): Promise<PaginatedLinksResponse> {
+  const response = await api.get<PaginatedLinksResponse>('/links', {
+    params: {
+      page,
+      per_page: 20
+    }
+  })
+  return response.data
 }
 
 export async function deleteLink(shortUrl: string): Promise<void> {
@@ -31,14 +41,13 @@ export async function redirectToUrl(shortUrl: string): Promise<RedirectResponse>
 }
 
 export async function exportLinks(): Promise<void> {
-  const response = await api.get('/links/export', { responseType: 'blob' })
-  const url = window.URL.createObjectURL(new Blob([response.data]))
+  const response = await api.get<{ reportUrl: string }>('/links/export')
+  const { reportUrl } = response.data
   const link = document.createElement('a')
-  link.href = url
+  link.href = reportUrl
   link.setAttribute('download', 'links.csv')
   document.body.appendChild(link)
   link.click()
-  link.remove()
-  window.URL.revokeObjectURL(url)
+  document.body.removeChild(link)
 } 
 

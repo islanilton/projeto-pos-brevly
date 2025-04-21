@@ -16,7 +16,24 @@ interface ApiError {
 }
 
 const createLinkSchema = z.object({
-  originalUrl: z.string().min(1, 'Informe uma url válida').url('Informe uma url válida'),
+  originalUrl: z.string()
+    .min(1, 'Informe uma url válida')
+    .url('Informe uma url válida')
+    .refine(
+      (url) => {
+        try {
+          const urlObj = new URL(url);
+          return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+        } catch {
+          return false;
+        }
+      },
+      'Informe uma url válida começando com http:// ou https://'
+    )
+    .refine(
+      (url) => !url.includes(' '),
+      'A url não pode conter espaços em branco'
+    ),
   shortUrl: z
     .string()
     .min(1, 'Informe uma url minúscula e sem espaço/caracter especial')
@@ -36,10 +53,11 @@ export function LinkForm({ onSuccess }: LinkFormProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid, isDirty },
     reset,
   } = useForm<CreateLinkFormData>({
     resolver: zodResolver(createLinkSchema),
+    mode: 'onChange',
   })
 
   async function onSubmit(data: CreateLinkFormData) {
@@ -67,23 +85,32 @@ export function LinkForm({ onSuccess }: LinkFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-4">
         <div>
-          <label htmlFor="originalUrl" className="block text-sm font-medium text-[#4A5568] uppercase mb-1">
-            Link original
-          </label>
-          <input
-            id="originalUrl"
-            type="text"
-            placeholder="www.exemplo.com.br"
-            className={`
-              w-full px-4 py-3
-              rounded-md
-              border border-[#E2E8F0]
-              text-[#1A202C] placeholder-[#A0AEC0]
-              focus:outline-none focus:ring-2 focus:ring-[#2B6CB0] focus:border-transparent
-              ${errors.originalUrl ? 'border-red-300 focus:ring-red-500' : ''}
-            `}
-            {...register('originalUrl')}
-          />
+          <div className="group">
+            <label 
+              htmlFor="originalUrl" 
+              className={`
+                block text-sm font-medium mb-1
+                transition-colors duration-200
+                ${errors.originalUrl ? 'text-red-600 group-focus-within:text-red-600' : 'text-[#4A5568] group-focus-within:text-[#2B6CB0]'}
+              `}
+            >
+              LINK ORIGINAL
+            </label>
+            <input
+              id="originalUrl"
+              type="text"
+              placeholder="www.exemplo.com.br"
+              className={`
+                w-full px-4 py-3
+                rounded-md
+                border border-[#E2E8F0]
+                text-[#1A202C] placeholder-[#A0AEC0]
+                focus:outline-none focus:ring-2 focus:ring-[#2B6CB0] focus:border-transparent
+                ${errors.originalUrl ? 'border-red-300 focus:ring-red-500' : ''}
+              `}
+              {...register('originalUrl')}
+            />
+          </div>
           {errors.originalUrl && (
             <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" role="img" aria-labelledby="originalUrlWarning">
@@ -96,27 +123,33 @@ export function LinkForm({ onSuccess }: LinkFormProps) {
         </div>
 
         <div>
-          <label htmlFor="shortUrl" className="block text-sm font-medium text-[#4A5568] uppercase mb-1">
-            Link encurtado
-          </label>
-          <div className="flex">
-            <span className="inline-flex items-center px-4 py-3 rounded-l-md border border-r-0 border-[#E2E8F0] bg-gray-50 text-[#A0AEC0] text-sm">
-              brev.ly/
-            </span>
-            <input
-              id="shortUrl"
-              type="text"
-              placeholder="nome-do-link"
+          <div className="group">
+            <label 
+              htmlFor="shortUrl" 
               className={`
-                flex-1 px-4 py-3
-                rounded-r-md
-                border border-[#E2E8F0]
-                text-[#1A202C] placeholder-[#A0AEC0]
-                focus:outline-none focus:ring-2 focus:ring-[#2B6CB0] focus:border-transparent
-                ${errors.shortUrl ? 'border-red-300 focus:ring-red-500' : ''}
+                block text-sm font-medium mb-1
+                transition-colors duration-200
+                ${errors.shortUrl ? 'text-red-600 group-focus-within:text-red-600' : 'text-[#4A5568] group-focus-within:text-[#2B6CB0]'}
               `}
-              {...register('shortUrl')}
-            />
+            >
+              LINK ENCURTADO
+            </label>
+            <div className={`
+              flex rounded-md border border-[#E2E8F0]
+              ${errors.shortUrl ? 'border-red-300 focus-within:ring-2 focus-within:ring-red-500' : 'focus-within:ring-2 focus-within:ring-[#2B6CB0]'}
+              focus-within:border-transparent
+            `}>
+              <span className="inline-flex items-center px-4 py-3 pr-0 text-[#A0AEC0] text-sm">
+                brev.ly/
+              </span>
+              <input
+                id="shortUrl"
+                type="text"
+                placeholder="nome-do-link"
+                className="flex-1 px-4 py-3 pl-0 text-[#1A202C] placeholder-[#A0AEC0] focus:outline-none bg-transparent"
+                {...register('shortUrl')}
+              />
+            </div>
           </div>
           {errors.shortUrl && (
             <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
@@ -132,8 +165,9 @@ export function LinkForm({ onSuccess }: LinkFormProps) {
 
       <Button
         type="submit"
-        className="w-full bg-[#2B6CB0] hover:bg-[#2C5282] text-white font-medium py-3 rounded-md transition-colors"
+        className="w-full bg-blue-base hover:bg-blue-dark text-white font-medium py-3 rounded-md transition-colors"
         isLoading={isCreating}
+        disabled={!isValid || !isDirty}
       >
         {isCreating ? 'Salvando...' : 'Salvar link'}
       </Button>

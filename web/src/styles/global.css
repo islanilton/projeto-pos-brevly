@@ -9,6 +9,7 @@
   }
 
   body {
+    font-family: 'Open Sans', sans-serif;
     @apply bg-gray-50 text-gray-900 antialiased;
   }
 }

@@ -9,8 +9,13 @@ import type { Link } from '../types/link'
 export function Home() {
   const { 
     links, 
-    isCreating, 
-    setLinks, 
+    isCreating,
+    currentPage,
+    setLinks,
+    appendLinks,
+    setTotal,
+    setCurrentPage,
+    setHasNextPage,
     setIsLoading,
     checkPendingAccessCount 
   } = useLinksStore()
@@ -39,11 +44,18 @@ export function Home() {
     return () => window.removeEventListener('focus', handleFocus)
   }, [checkPendingAccessCount])
 
-  async function loadLinks() {
+  async function loadLinks(page = 1) {
     try {
       setIsLoading(true)
-      const data = await getLinks()
-      setLinks(data)
+      const data = await getLinks(page)
+      if (page === 1) {
+        setLinks(data.links)
+      } else {
+        appendLinks(data.links)
+      }
+      setTotal(data.total)
+      setHasNextPage(data.links.length === 20)
+      setCurrentPage(page)
     } catch (error) {
       console.error(error)
     } finally {
@@ -64,9 +76,9 @@ export function Home() {
       <Header />
       
       <main className="container px-4 py-8 mx-auto max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           {/* Left Column - Form */}
-          <div className="bg-white rounded-lg shadow-[0_1px_3px_0_rgba(0,0,0,0.1)]">
+          <div className="bg-white rounded-lg shadow-[0_1px_3px_0_rgba(0,0,0,0.1)] lg:sticky lg:top-8">
             <div className="p-6">
               <h1 className="text-2xl font-bold text-[#1A202C] mb-6">
                 Novo link
@@ -77,7 +89,11 @@ export function Home() {
           </div>
 
           {/* Right Column - List */}
-          <LinkList onDelete={handleDeleteLink} isCreating={isCreating} />
+          <LinkList 
+            onDelete={handleDeleteLink} 
+            isCreating={isCreating}
+            onLoadMore={() => loadLinks(currentPage + 1)}
+          />
         </div>
       </main>
     </div>

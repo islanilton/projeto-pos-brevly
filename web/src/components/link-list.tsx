@@ -1,20 +1,54 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { deleteLink, exportLinks } from '../services/link'
 import { useLinksStore } from '../store/links'
 import ConfirmDeleteModal from './confirm-delete-modal'
 import { Button } from './ui/button'
 import trashIcon from '../assets/images/trash.svg'
 import copyIcon from '../assets/images/copy.svg'
+import downloadIcon from '../assets/images/download.svg'
+import linkIcon from '../assets/images/link.svg'
+
 interface LinkListProps {
   onDelete: (id: string) => void
   isCreating?: boolean
+  onLoadMore: () => void
 }
 
-export function LinkList({ onDelete, isCreating = false }: LinkListProps) {
-  const { links, isLoading, isExporting, setIsExporting } = useLinksStore()
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [linkToDelete, setLinkToDelete] = useState<string | null>(null);
+export function LinkList({ onDelete, isCreating = false, onLoadMore }: LinkListProps) {
+  const { links, isLoading, isExporting, hasNextPage, setIsExporting } = useLinksStore()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [linkToDelete, setLinkToDelete] = useState<string | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const showLoading = isLoading || isCreating
+
+  useEffect(() => {
+    const listElement = listRef.current
+    if (!listElement) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const target = entries[0]
+        if (target.isIntersecting && hasNextPage && !isLoading) {
+          onLoadMore()
+        }
+      },
+      {
+        root: null,
+        rootMargin: '100px',
+        threshold: 0.1,
+      }
+    )
+
+    const sentinel = document.createElement('div')
+    sentinel.style.height = '1px'
+    listElement.appendChild(sentinel)
+    observer.observe(sentinel)
+
+    return () => {
+      observer.disconnect()
+      sentinel.remove()
+    }
+  }, [hasNextPage, isLoading, onLoadMore])
 
   async function handleCopy(shortUrl: string) {
     await navigator.clipboard.writeText(`${window.location.origin}/${shortUrl}`)
@@ -49,22 +83,27 @@ export function LinkList({ onDelete, isCreating = false }: LinkListProps) {
       )}
 
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-medium text-[#1A202C]">Meus links</h2>
-          <Button
-            type="button"
-            onClick={handleExportCSV}
-            disabled={isExporting}
-            variant="secondary"
-          >
-            {isExporting ? 'Baixando...' : 'Baixar CSV'}
-          </Button>
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-xl font-medium text-gray-600">Meus links</h2>
+          <div className="bg-gray-50 rounded-lg">
+            <Button
+              type="button"
+              onClick={handleExportCSV}
+              disabled={isExporting || !links.length}
+              className="flex items-center gap-2 bg-gray-200 rounded-md border border-gray-200 text-gray-500 disabled:bg-gray-200 disabled:hover:text-gray-500 disabled:cursor-not-allowed disabled:border-gray-200 hover:bg-gray-200 hover:border hover:border-gray-500 transition-colors"
+            >
+              <img src={downloadIcon} alt="Exportar CSV" className="w-4 h-4" />
+              <span className="text-gray-500">{isExporting ? 'Baixando...' : 'Baixar CSV'}</span>
+            </Button>
+          </div>
         </div>
+
+        <div className="h-px bg-gray-200" />
 
         {showLoading && !links.length ? (
           <div className="flex flex-col items-center justify-center py-12">
             <svg 
-              className="animate-spin h-5 w-5 text-zinc-500 mb-2" 
+              className="animate-spin h-5 w-5 text-gray-400 mb-2" 
               xmlns="http://www.w3.org/2000/svg" 
               fill="none" 
               viewBox="0 0 24 24"
@@ -86,24 +125,22 @@ export function LinkList({ onDelete, isCreating = false }: LinkListProps) {
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" 
               />
             </svg>
-            <span className="text-zinc-500">Carregando links...</span>
+            <span className="text-gray-400">Carregando links...</span>
           </div>
         ) : links.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="inline-flex items-center justify-center w-12 h-12 mb-4 text-[#2B6CB0]">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M13.5 10.5L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M16.5 3L21 3L21 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M10.5 13.5L3 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M7.5 21L3 21L3 16.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 mb-6 text-blue-base">
+              <img src={linkIcon} alt="Ícone de link" className="w-10 h-10" />
             </div>
-            <p className="text-[#1A202C] font-medium">
+            <p className="text-gray-500 font-medium">
               AINDA NÃO EXISTEM LINKS CADASTRADOS
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div 
+            ref={listRef}
+            className="space-y-4 max-h-[calc(100vh-16rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-track-transparent hover:scrollbar-track-gray-100 scrollbar-thumb-blue-base hover:scrollbar-thumb-blue-dark transition-colors"
+          >
             {links.map((link) => (
               <div
                 key={link.id}
@@ -112,7 +149,7 @@ export function LinkList({ onDelete, isCreating = false }: LinkListProps) {
                 <div className="flex-1 min-w-0 mr-4">
                   <a
                     href={`/${link.shortUrl}`}
-                    className="text-[#2B6CB0] hover:text-[#2C5282] font-medium mb-1 block"
+                    className="text-blue-base hover:text-blue-dark font-bold mb-1 block"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -125,7 +162,7 @@ export function LinkList({ onDelete, isCreating = false }: LinkListProps) {
 
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-zinc-900">
-                    {link.accessCount} acessos
+                    {link.accessCount || 0} acessos
                   </span>
                   <button
                     type="button"
@@ -152,6 +189,32 @@ export function LinkList({ onDelete, isCreating = false }: LinkListProps) {
                 </div>
               </div>
             ))}
+            {isLoading && hasNextPage && (
+              <div className="flex justify-center py-4">
+                <svg 
+                  className="animate-spin h-5 w-5 text-gray-400" 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  fill="none" 
+                  viewBox="0 0 24 24"
+                  role="img"
+                  aria-label="Carregando mais links..."
+                >
+                  <circle 
+                    className="opacity-25" 
+                    cx="12" 
+                    cy="12" 
+                    r="10" 
+                    stroke="currentColor" 
+                    strokeWidth="4" 
+                  />
+                  <path 
+                    className="opacity-75" 
+                    fill="currentColor" 
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" 
+                  />
+                </svg>
+              </div>
+            )}
           </div>
         )}
       </div>
